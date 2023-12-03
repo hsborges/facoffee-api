@@ -1,0 +1,5 @@
+.vscode
+data
+dist
+node_modules
+Dockerfile

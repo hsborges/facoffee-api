@@ -1,0 +1,287 @@
+openapi: 3.0.0
+
+info:
+  title: Facoffee Financeiro API
+  version: 0.9.0
+  description: API para gerenciar transações financeiras da aplicação FACOFFEE
+
+tags:
+  - name: Transacoes
+    description: Operações de transações financeiras
+
+paths:
+  /transacoes/saldo:
+    get:
+      summary: Obtém o saldo das movimentações financeiras de um usuário
+      tags:
+        - Transacoes
+      parameters:
+        - $ref: '#/components/parameters/destinatario'
+      responses:
+        '200':
+          description: Consulta realizada com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  saldo:
+                    type: integer
+                    description: Saldo consolidado do destinatario
+                  pendente:
+                    type: string
+                    description: Saldo de transações pendentes de avaliação
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /transacoes/extrato:
+    get:
+      summary: Obtém o extrato das movimentações financeiras de um usuário
+      tags:
+        - Transacoes
+      parameters:
+        - $ref: '#/components/parameters/destinatario'
+      responses:
+        '200':
+          description: Consulta realizada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transacao'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /transacoes/credito:
+    post:
+      summary: Realiza uma transação de crédito
+      tags:
+        - Transacoes
+      requestBody:
+        $ref: '#/components/requestBodies/Credito'
+      responses:
+        '201':
+          description: Transação realizada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Credito'
+        '400':
+          description: Erro de validação
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+  /transacoes/credito/{transacao}:
+    patch:
+      summary: Revisa uma transação de crédito
+      tags:
+        - Transacoes
+      parameters:
+        - name: transacao
+          in: path
+          required: true
+          description: Identificador da transacao
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  description: Status da transação
+                  enum:
+                    - aprovado
+                    - rejeitado
+      responses:
+        '200':
+          description: Transação revisada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Credito'
+        '400':
+          description: Erro de validação
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /transacoes/debito:
+    post:
+      summary: Realiza uma transação de débito
+      tags:
+        - Transacoes
+      requestBody:
+        $ref: '#/components/requestBodies/Debito'
+      responses:
+        '201':
+          description: Transação realizada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Debito'
+        '400':
+          description: Erro de validação
+
+components:
+  schemas:
+    TransacaoBase:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Identificador da transação
+          nullable: false
+        referencia:
+          type: string
+          description: Referência da transação
+          nullable: false
+        valor:
+          type: integer
+          description: Valor da transação
+          nullable: false
+        emissor:
+          type: string
+          format: uuid
+          description: Identificador do emissor
+          nullable: false
+        destinatario:
+          type: string
+          format: uuid
+          description: Identificador do destinatário
+          nullable: false
+        descricao:
+          type: string
+          description: Descrição da transação
+          nullable: true
+    Debito:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/TransacaoBase'
+        - type: object
+          properties:
+            tipo:
+              type: string
+              description: Tipo da transação
+              enum:
+                - Debito
+              nullable: false
+    Credito:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/TransacaoBase'
+        - type: object
+          properties:
+            tipo:
+              type: string
+              description: Tipo da transação
+              enum:
+                - Credito
+              nullable: false
+            comprovante:
+              type: string
+              description: Comprovante da transação
+              nullable: false
+            status:
+              type: string
+              description: Status da transação
+              enum:
+                - pendente
+                - aprovado
+                - rejeitado
+              nullable: false
+            revisado_em:
+              type: string
+              format: date-time
+              description: Data de revisão da transação
+              nullable: true
+            revisado_por:
+              type: string
+              format: uuid
+              description: Identificador do revisor da transação
+              nullable: true
+    Transacao:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/Debito'
+        - $ref: '#/components/schemas/Credito'
+  parameters:
+    destinatario:
+      name: destinatario
+      in: query
+      required: false
+      description: Identificador do destinatário
+      schema:
+        type: string
+        format: uuid
+
+  requestBodies:
+    Credito:
+      description: Dados da transação de crédito
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            required:
+              - referencia
+              - valor
+              - comprovante
+            properties:
+              destinatario:
+                type: string
+                format: uuid
+                description: Identificador do destinatário
+              referencia:
+                type: string
+                description: Referência da transação
+              valor:
+                type: integer
+                description: Valor da transação
+              descricao:
+                type: string
+                description: Descrição da transação
+              comprovante:
+                type: string
+                format: binary
+                description: Comprovante da transação
+
+    Debito:
+      description: Dados da transação de débito
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - destinatario
+              - referencia
+              - valor
+            properties:
+              destinatario:
+                type: string
+                format: uuid
+                description: Identificador do destinatario
+              referencia:
+                type: string
+                description: Referência da transação
+              valor:
+                type: number
+                description: Valor da transação
+              descricao:
+                type: string
+                description: Descrição da transação
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    UnauthorizedError:
+      description: Acesso não autorizado (token ausente ou inválido)
+
+security:
+  - bearerAuth: []

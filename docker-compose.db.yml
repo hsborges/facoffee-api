@@ -1,0 +1,23 @@
+version: '3'
+
+services:
+  db:
+    image: 'postgres:latest'
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-facoffee}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-facoffee}
+      POSTGRES_DB: ${POSTGRES_DB:-facoffee_financeiro_db}
+    ports:
+      - 5432:5432
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD', 'pg_isready', '-U', 'facoffee', '-d', '${POSTGRES_DB:-facoffee_financeiro_db}']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+    driver: local
