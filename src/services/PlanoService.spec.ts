@@ -1,32 +1,75 @@
+import { faker } from '@faker-js/faker';
+import exp from 'constants';
+import { EntityNotFoundError } from 'typeorm';
+
 import { Plano } from '../entities/Plano';
 import { PlanoService } from './PlanoService';
-import { createMockedRepository } from './__mokcs__/typeorm.mock';
+import { createMockedRepository } from './__mocks__/typeorm.mock';
 
 describe('Testa PlanoService', () => {
   const repository = createMockedRepository<Plano>();
   const service = new PlanoService(repository);
 
-  beforeEach(() => repository.clearMock());
+  beforeEach(() => repository._clear());
 
-  it('deve realizar atividades básicas (salvar, listar, atualizar, remover)', async () => {
-    const data = await Promise.all(
-      [
-        new Plano({ nome: 'Plano 1', descricao: 'Descrição do plano 1', valor: 100 }),
-        new Plano({ nome: 'Plano 2', descricao: 'Descrição do plano 2', valor: 200 }),
-        new Plano({ nome: 'Plano 3', descricao: 'Descrição do plano 3', valor: 300 }),
-      ].map((d) => repository.save(d)),
+  it('deve criar um plano', async () => {
+    const data = { nome: faker.string.sample(), descricao: faker.string.sample(), valor: faker.number.float() };
+    const instancia = await service.criar(data);
+    expect(instancia).toBeInstanceOf(Plano);
+    expect(instancia).toHaveProperty('id');
+    expect(instancia).toHaveProperty('nome', data.nome);
+    expect(instancia).toHaveProperty('descricao', data.descricao);
+    expect(instancia).toHaveProperty('valor', data.valor);
+    expect(instancia).toHaveProperty('ativo', true);
+
+    expect(repository.save).toHaveBeenCalledTimes(1);
+    expect(repository._data()).toEqual([instancia]);
+  });
+
+  it('deve buscar um plano por id', async () => {
+    const fakePlano = await repository.save(
+      new Plano({ nome: faker.string.sample(), descricao: faker.string.sample(), valor: faker.number.float() }),
     );
 
+    await expect(service.buscarPorId(fakePlano.id)).resolves.toEqual(fakePlano);
+  });
+
+  it('deve listar planos', async () => {
+    const data = await Promise.all(
+      Array(3)
+        .fill(null)
+        .map((d) =>
+          repository.save(
+            new Plano({ nome: faker.string.sample(), descricao: faker.string.sample(), valor: faker.number.float() }),
+          ),
+        ),
+    );
+
+    await expect(service.listar(true)).resolves.toEqual(data);
+
+    Object.assign(data.shift() as Plano, { ativo: false });
+
     await expect(service.listar()).resolves.toEqual(data);
+  });
 
-    const first = data.at(0) as Plano;
+  it('deve atualizar um plano', async () => {
+    await expect(service.atualizar(faker.string.uuid(), { ativo: false })).rejects.toBeInstanceOf(EntityNotFoundError);
 
-    await expect(service.atualizar(first.id, { ativo: false })).resolves.toHaveProperty('ativo', false);
-    await expect(service.listar()).resolves.toHaveLength(data.length - 1);
+    const fakePlano = await repository.save(
+      new Plano({ nome: faker.string.sample(), descricao: faker.string.sample(), valor: faker.number.float() }),
+    );
 
-    await expect(service.listar(true)).resolves.toHaveLength(data.length);
+    await expect(service.atualizar(fakePlano.id, { ativo: false })).resolves.toHaveProperty('ativo', false);
+    await expect(service.atualizar(fakePlano.id, { ativo: true })).resolves.toHaveProperty('ativo', true);
+  });
 
-    await expect(service.remover(first.id)).resolves.toBeUndefined();
-    await expect(service.listar(true)).resolves.toHaveLength(data.length - 1);
+  it('deve remover um plano', async () => {
+    const fakePlano = await repository.save(
+      new Plano({ nome: faker.string.sample(), descricao: faker.string.sample(), valor: faker.number.float() }),
+    );
+
+    await expect(service.buscarPorId(fakePlano.id)).resolves.toEqual(fakePlano);
+    await expect(service.remover(fakePlano.id)).resolves.toBeUndefined();
+    await expect(service.buscarPorId(fakePlano.id)).resolves.toBeNull();
   });
 });
