@@ -40,10 +40,11 @@ export class Assinatura {
     this._status = 'ativa';
   }
 
-  public encerrar(motivo: 'cancelamento' | 'finalizacao') {
+  public encerrar(motivo: 'cancelamento' | 'finalizacao'): Assinatura {
     if (this.status !== 'ativa') throw new Error('Assinatura não está ativa');
     this._status = motivo === 'cancelamento' ? 'cancelada' : 'finalizada';
     this._encerrada_em = new Date();
+    return this;
   }
 
   toJSON() {
