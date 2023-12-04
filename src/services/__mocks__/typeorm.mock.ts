@@ -42,6 +42,9 @@ export function createMockedRepository<T extends ObjectLiteral>(): Repository<T>
         return false;
       });
     }),
+    remove: jest.fn().mockImplementation((t: T) => {
+      data = data.filter((t2) => t2.id !== t.id);
+    }),
     _clear: () => (data = []),
     _data: () => data,
   } as any;

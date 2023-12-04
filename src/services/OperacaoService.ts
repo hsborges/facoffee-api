@@ -22,11 +22,14 @@ export class OperacaoService {
   }
 
   async creditar({ comprovante, ...deposito }: TCredito): Promise<Credito> {
-    return this.repository.manager.transaction(async (manager) => {
-      const result = await manager.save(new Credito({ ...deposito, comprovante: comprovante.name }));
-      await this.fileService.save(`${result.id}-${comprovante.name}`, comprovante.data);
-      return result;
+    const result = await this.repository.save(new Credito({ ...deposito, comprovante: comprovante.name }));
+
+    await this.fileService.save(`${result.id}-${comprovante.name}`, comprovante.data).catch(async (error) => {
+      await this.repository.remove(result);
+      throw error;
     });
+
+    return result;
   }
 
   async debitar(debito: TDebito): Promise<Debito> {

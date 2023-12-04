@@ -6,6 +6,7 @@ import { Debito } from '../entities/Debito';
 import { Operacao } from '../entities/Operacao';
 import { NotFoundError } from '../utils/errors';
 import { OperacaoService } from './OperacaoService';
+import { createMockedRepository } from './__mocks__/typeorm.mock';
 
 function criaDadosFakeDebito(dest?: string): ConstructorParameters<typeof Debito>[0] {
   return {
@@ -29,123 +30,116 @@ function criaDadosFakeCredito(dest?: string): ConstructorParameters<typeof Credi
 }
 
 describe('Testa OperacaoService', () => {
-  let db: Array<Operacao> = [];
+  const repoMock = createMockedRepository<Operacao>();
 
-  const repoMock = {
-    save: jest.fn().mockImplementation((t: Operacao) => {
-      if (!t.id) db.push(Object.assign(t, { id: faker.string.uuid() }));
-      else db[db.findIndex((t2) => t2.id === t.id)] = t;
-      return t;
-    }),
-    findBy: jest.fn().mockImplementation(async (query) => {
-      return db.filter((t: Record<string, any>) => {
-        for (const key in query) {
-          if (t[key] !== query[key]) return false;
-        }
-        return true;
-      });
-    }),
-    findOneBy: jest.fn().mockImplementation(async (query) => {
-      return db.find((t: Record<string, any>) => {
-        for (const key in query) {
-          if (t[key] !== query[key]) return false;
-        }
-        return true;
-      });
-    }),
-    manager: { transaction: jest.fn().mockImplementation((fn) => fn(repoMock)) },
-  } as unknown as Repository<Operacao>;
+  beforeEach(() => repoMock._clear());
 
-  const service = new OperacaoService({
-    repository: repoMock,
-    fileService: { save: jest.fn().mockImplementation(async () => void 0) },
-  });
+  {
+    const service = new OperacaoService({
+      repository: repoMock,
+      fileService: { save: jest.fn().mockResolvedValue(void 0) },
+    });
 
-  beforeEach(() => {
-    db = [];
-  });
+    it('deve permitir debitar valores', async () => {
+      const usuario = faker.string.uuid();
 
-  it('deve permitir debitar valores', async () => {
-    const usuario = faker.string.uuid();
+      let saldo = 0;
 
-    let saldo = 0;
+      for (let i = 1; i <= 5; i++) {
+        const debito = criaDadosFakeDebito(usuario);
 
-    for (let i = 1; i <= 5; i++) {
-      const debito = criaDadosFakeDebito(usuario);
+        let resumo = await service.resumoPorUsuario(usuario);
+        expect(resumo.saldo).toBe(saldo);
 
-      let resumo = await service.resumoPorUsuario(usuario);
-      expect(resumo.saldo).toBe(saldo);
+        const debitoFinal = await service.debitar(debito);
+        saldo -= debito.valor;
 
-      const debitoFinal = await service.debitar(debito);
-      saldo -= debito.valor;
+        expect(debitoFinal.id).toBeDefined();
 
-      expect(debitoFinal.id).toBeDefined();
+        const uTrans = await service.buscarPorUsuario(usuario);
 
-      const uTrans = await service.buscarPorUsuario(usuario);
+        expect(uTrans).toHaveLength(i);
+        expect(uTrans.includes(debitoFinal)).toBeTruthy();
 
-      expect(uTrans).toHaveLength(i);
-      expect(uTrans.includes(debitoFinal)).toBeTruthy();
+        resumo = await service.resumoPorUsuario(debito.usuario);
+        expect(resumo.saldo).toBe(saldo);
+      }
+    });
 
-      resumo = await service.resumoPorUsuario(debito.usuario);
-      expect(resumo.saldo).toBe(saldo);
-    }
-  });
+    it('deve permitir o deposito e revisao de valores', async () => {
+      const usuario = faker.string.uuid();
 
-  it('deve permitir o deposito e revisao de valores', async () => {
-    const usuario = faker.string.uuid();
+      const ids: Array<string> = [];
 
-    const ids: Array<string> = [];
+      let pendente = 0;
 
-    let pendente = 0;
+      for (let i = 1; i <= 5; i++) {
+        const credito = criaDadosFakeCredito(usuario);
 
-    for (let i = 1; i <= 5; i++) {
-      const credito = criaDadosFakeCredito(usuario);
+        let resumo = await service.resumoPorUsuario(usuario);
+        expect(resumo.saldo).toBe(0);
+        expect(resumo.pendente).toBe(pendente);
 
-      let resumo = await service.resumoPorUsuario(usuario);
-      expect(resumo.saldo).toBe(0);
-      expect(resumo.pendente).toBe(pendente);
+        const creditoFinal = await service.creditar({
+          ...credito,
+          comprovante: { name: faker.system.fileName(), data: Buffer.from(faker.system.filePath()) },
+        });
 
-      const creditoFinal = await service.creditar({
-        ...credito,
-        comprovante: { name: faker.system.fileName(), data: Buffer.from(faker.system.filePath()) },
-      });
+        pendente += credito.valor;
+        ids.push(creditoFinal.id);
 
-      pendente += credito.valor;
-      ids.push(creditoFinal.id);
+        expect(creditoFinal.id).toBeDefined();
 
-      expect(creditoFinal.id).toBeDefined();
+        const uTrans = await service.buscarPorUsuario(usuario);
 
-      const uTrans = await service.buscarPorUsuario(usuario);
+        expect(uTrans).toHaveLength(i);
+        expect(uTrans.includes(creditoFinal)).toBeTruthy();
 
-      expect(uTrans).toHaveLength(i);
-      expect(uTrans.includes(creditoFinal)).toBeTruthy();
+        resumo = await service.resumoPorUsuario(usuario);
+        expect(resumo.saldo).toBe(0);
+        expect(resumo.pendente).toBe(pendente);
+      }
 
-      resumo = await service.resumoPorUsuario(usuario);
-      expect(resumo.saldo).toBe(0);
-      expect(resumo.pendente).toBe(pendente);
-    }
+      let saldo = 0;
 
-    let saldo = 0;
+      for (let i = 1; i <= 5; i++) {
+        const operacao = ids[i - 1];
 
-    for (let i = 1; i <= 5; i++) {
-      const operacao = ids[i - 1];
+        const status = i % 2 === 0 ? 'aprovado' : 'rejeitado';
 
-      const status = i % 2 === 0 ? 'aprovado' : 'rejeitado';
+        const uTrans = await service.revisar(operacao, { status, revisado_por: faker.string.uuid() });
+        if (status === 'aprovado') saldo += uTrans.valor;
 
-      const uTrans = await service.revisar(operacao, { status, revisado_por: faker.string.uuid() });
-      if (status === 'aprovado') saldo += uTrans.valor;
+        pendente -= uTrans.valor;
 
-      pendente -= uTrans.valor;
+        const resumo = await service.resumoPorUsuario(usuario);
+        expect(resumo.saldo).toBe(saldo);
+        expect(resumo.pendente).toBe(pendente);
+      }
+    });
 
-      const resumo = await service.resumoPorUsuario(usuario);
-      expect(resumo.saldo).toBe(saldo);
-      expect(resumo.pendente).toBe(pendente);
-    }
-  });
+    it('deve lançar erro ao revisar deposito invalido', () => {
+      expect(
+        service.revisar(faker.string.uuid(), { status: 'aprovado', revisado_por: faker.string.uuid() }),
+      ).rejects.toThrow(NotFoundError);
+    });
+  }
 
-  it('deve lançar erro ao revisar deposito invalido', () => {
-    expect(
-      service.revisar(faker.string.uuid(), { status: 'aprovado', revisado_por: faker.string.uuid() }),
-    ).rejects.toThrow(NotFoundError);
-  });
+  {
+    const service = new OperacaoService({
+      repository: repoMock,
+      fileService: { save: jest.fn().mockRejectedValue(new Error('Unknown error')) },
+    });
+
+    it('deve remover entrada se erro ao salvar comprovante', async () => {
+      await expect(
+        service.creditar({
+          ...criaDadosFakeCredito(),
+          comprovante: { name: faker.system.fileName(), data: Buffer.from(faker.system.filePath()) },
+        }),
+      ).rejects.toThrow('Unknown error');
+
+      expect(repoMock._data()).toHaveLength(0);
+    });
+  }
 });
