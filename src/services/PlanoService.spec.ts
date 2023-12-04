@@ -8,7 +8,7 @@ import { createMockedRepository } from './__mocks__/typeorm.mock';
 
 describe('Testa PlanoService', () => {
   const repository = createMockedRepository<Plano>();
-  const service = new PlanoService(repository);
+  const service = new PlanoService({ repository });
 
   beforeEach(() => repository._clear());
 

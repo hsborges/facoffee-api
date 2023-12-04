@@ -1,12 +1,13 @@
 import { Entity, EntityNotFoundError, Repository } from 'typeorm';
 
 import { Plano } from '../entities/Plano';
+import { AppDataSource } from '../utils/data-source';
 
 export class PlanoService {
   private readonly repositorio: Repository<Plano>;
 
-  constructor(repositorio: Repository<Plano>) {
-    this.repositorio = repositorio;
+  constructor(props?: Partial<{ repository: Repository<Plano> }>) {
+    this.repositorio = props?.repository || AppDataSource.getRepository(Plano);
   }
 
   public async listar(todos = false): Promise<Plano[]> {
