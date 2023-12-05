@@ -56,6 +56,29 @@ describe('Testa PlanoController', () => {
     expect(plano2).toEqual({ id: plano.id, ...sample, ativo: false });
   });
 
+  it('deve validar os dados de entrada', async () => {
+    const sendRequest = (data: Partial<typeof sample>) =>
+      supertest(app)
+        .post('/')
+        .auth(tokens.admin, { type: 'bearer' })
+        .send(Object.assign({}, sample, data));
+
+    await sendRequest({ nome: undefined }).expect(StatusCodes.BAD_REQUEST);
+    await sendRequest({ descricao: undefined }).expect(StatusCodes.BAD_REQUEST);
+    await sendRequest({ valor: undefined }).expect(StatusCodes.BAD_REQUEST);
+    await sendRequest({ valor: -faker.number.float() }).expect(StatusCodes.BAD_REQUEST);
+
+    const plano = await sendRequest({})
+      .expect(StatusCodes.CREATED)
+      .then(({ body }) => body);
+
+    await supertest(app)
+      .patch(`/${plano.id}`)
+      .auth(tokens.admin, { type: 'bearer' })
+      .send(Object.assign({}, sample, { valor: -faker.number.float() }))
+      .expect(StatusCodes.BAD_REQUEST);
+  });
+
   it('deve permitir obter um plano pelo id', async () => {
     await supertest(app).get(`/${faker.string.uuid()}`).expect(StatusCodes.NOT_FOUND);
 
