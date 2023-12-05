@@ -1,4 +1,4 @@
-import { Request as ERequest, Response } from 'express';
+import { Request as ERequest, NextFunction, Response } from 'express';
 
 import { UnauthorizedError } from '../utils/errors';
 import { SupertokensJwtPayload, hasRole, isAuthenticated } from './auth';
@@ -16,6 +16,17 @@ jest.mock('jsonwebtoken', () => ({
     else callback(new Error('Invalid token'));
   }),
 }));
+
+function execute(
+  middlewares: ((req: Request, res: Response, next: NextFunction) => void)[],
+  req: Request,
+  res: Response,
+) {
+  return new Promise((resolve, reject) => {
+    const next = (error?: any) => (error ? reject(error) : Promise.resolve());
+    middlewares.reduce((prev, curr) => prev.then(() => curr(req, res, next)), Promise.resolve()).then(resolve);
+  });
+}
 
 describe('Testa middleware de autenticação', () => {
   describe('Testa isAuthenticated', () => {
@@ -45,24 +56,22 @@ describe('Testa middleware de autenticação', () => {
   });
 
   describe('Testa hasRole', () => {
-    it('deve retornar Unauthorized se token não é fornecido', () => {
-      hasRole('admin')({ headers: {} } as Request, {} as Response, (error) => {
-        expect(error).toBeDefined();
-        expect(error).toBeInstanceOf(UnauthorizedError);
-      });
+    it('deve retornar Unauthorized se token não é fornecido', async () => {
+      await expect(execute(hasRole('admin'), { headers: {} } as Request, {} as Response)).rejects.toBeInstanceOf(
+        UnauthorizedError,
+      );
     });
 
-    it('deve retornar Unauthorized se usuário não tem o papel indicado', () => {
-      hasRole('admin')({ headers: { authorization: 'Bearer valid-token-2' } } as Request, {} as Response, (error) => {
-        expect(error).toBeDefined();
-        expect(error).toBeInstanceOf(UnauthorizedError);
-      });
+    it('deve retornar Unauthorized se usuário não tem o papel indicado', async () => {
+      await expect(
+        execute(hasRole('admin'), { headers: { authorization: 'Bearer valid-token-2' } } as Request, {} as Response),
+      ).rejects.toBeInstanceOf(UnauthorizedError);
     });
 
-    it('deve passar com sucesso se usuário possui o papel indicado', () => {
-      hasRole('admin')({ headers: { authorization: 'Bearer valid-token' } } as Request, {} as Response, (error) => {
-        expect(error).toBeUndefined();
-      });
+    it('deve passar com sucesso se usuário possui o papel indicado', async () => {
+      await expect(
+        execute(hasRole('admin'), { headers: { authorization: 'Bearer valid-token' } } as Request, {} as Response),
+      ).resolves.toBeUndefined();
     });
   });
 });

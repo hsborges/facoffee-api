@@ -11,7 +11,7 @@ export class Plano {
   @Column()
   public readonly descricao!: string;
 
-  @Column()
+  @Column('decimal')
   public readonly valor!: number;
 
   @Column()

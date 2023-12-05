@@ -49,13 +49,11 @@ export function isAuthenticated() {
 }
 
 export function hasRole(role: 'admin') {
-  return async (req: Request, res: Response, next: NextFunction) => {
-    const callback: NextFunction = (error) => {
-      if (error) return next(error);
+  return [
+    isAuthenticated(),
+    (req: Request, res: Response, next: NextFunction) => {
       if (req.user?.roles.includes(role)) return next();
       return next(new UnauthorizedError());
-    };
-
-    return req.user ? callback() : isAuthenticated()(req, res, callback);
-  };
+    },
+  ];
 }

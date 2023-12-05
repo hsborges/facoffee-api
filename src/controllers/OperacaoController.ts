@@ -1,29 +1,12 @@
 import { NextFunction, Request, Response, Router } from 'express';
-import { Schema, checkSchema, matchedData, validationResult } from 'express-validator';
 
 import { hasRole, isAuthenticated } from '../middlewares/auth';
 import { upload } from '../middlewares/multer';
+import { validate } from '../middlewares/validate';
 import { OperacaoService } from '../services/OperacaoService';
 import { UnauthorizedError } from '../utils/errors';
 
-const validate = (schema: Schema, opts?: { onError: (error: Error, req: Request) => any }) => {
-  return [
-    ...checkSchema(schema),
-    (req: Request, res: Response, next: NextFunction) => {
-      const result = validationResult(req);
-      req.data = matchedData(req);
-      if (result.isEmpty()) return next();
-      try {
-        result.throw();
-      } catch (error: any) {
-        opts?.onError(error, req);
-        res.status(400).json({ errors: result.array() });
-      }
-    },
-  ];
-};
-
-export const createRouter = (service: OperacaoService = new OperacaoService()) => {
+export function createRouter(service: OperacaoService = new OperacaoService()) {
   const router = Router();
 
   router.get(
@@ -106,4 +89,4 @@ export const createRouter = (service: OperacaoService = new OperacaoService()) =
   );
 
   return router;
-};
+}
