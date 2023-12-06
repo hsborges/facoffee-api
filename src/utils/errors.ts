@@ -12,9 +12,9 @@ export class NotFoundError extends HttpError {
   }
 }
 
-export class DuplicatedError extends HttpError {
-  constructor(message: string = 'Duplicated resource') {
-    super(message, 409);
+export class BadRequestError extends HttpError {
+  constructor(message: string = 'Validation error') {
+    super(message, 400);
   }
 }
 
@@ -24,9 +24,9 @@ export class UnauthorizedError extends HttpError {
   }
 }
 
-export class ValidationError extends HttpError {
-  constructor(message: string = 'Validation error') {
-    super(message, 400);
+export class DuplicatedError extends HttpError {
+  constructor(message: string = 'Duplicated resource') {
+    super(message, 409);
   }
 }
 

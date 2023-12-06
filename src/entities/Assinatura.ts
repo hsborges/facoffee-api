@@ -1,7 +1,8 @@
-import { Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
 import { Plano } from './Plano';
 
+@Entity()
 export class Assinatura {
   @PrimaryGeneratedColumn('uuid')
   public readonly id!: string;
@@ -9,49 +10,42 @@ export class Assinatura {
   @Column()
   public readonly usuario!: string;
 
-  @Column()
+  @ManyToOne(() => Plano, (plano) => plano.id, { eager: true })
   public readonly plano!: Plano;
 
   @Column()
   public readonly inicio_em!: Date;
 
-  @Column()
+  @Column({ nullable: true })
   public readonly fim_em?: Date;
 
   @Column({ enum: ['ativa', 'cancelada', 'finalizada'], default: 'ativa' })
-  protected _status!: 'ativa' | 'cancelada' | 'finalizada';
-
-  get status() {
-    return this._status;
-  }
+  public readonly status!: 'ativa' | 'cancelada' | 'finalizada';
 
   @Column({ nullable: true })
-  protected _encerrada_em?: Date;
-
-  get encerrada_em() {
-    return this._encerrada_em;
-  }
+  public readonly encerrada_em?: Date;
 
   constructor(props: { usuario: string; plano: Plano; fim_em?: Date }) {
     this.usuario = props.usuario;
     this.plano = props.plano;
     this.fim_em = props.fim_em;
     this.inicio_em = new Date();
-    this._status = 'ativa';
+    this.status = 'ativa';
   }
 
   public encerrar(motivo: 'cancelamento' | 'finalizacao'): Assinatura {
     if (this.status !== 'ativa') throw new Error('Assinatura não está ativa');
-    this._status = motivo === 'cancelamento' ? 'cancelada' : 'finalizada';
-    this._encerrada_em = new Date();
-    return this;
+    return Object.assign(this, {
+      status: motivo === 'cancelamento' ? 'cancelada' : 'finalizada',
+      encerrada_em: new Date(),
+    });
   }
 
   toJSON() {
     return {
       id: this.id,
       usuario: this.usuario,
-      plano: this.plano,
+      plano: this.plano.id,
       inicio_em: this.inicio_em,
       fim_em: this.fim_em,
       status: this.status,

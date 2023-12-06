@@ -4,8 +4,9 @@ import { Repository } from 'typeorm';
 import { Assinatura } from '../entities/Assinatura';
 import { Plano } from '../entities/Plano';
 import { AppDataSource } from '../utils/data-source';
+import { BadRequestError } from '../utils/errors';
 
-export class AssinaturaError extends Error {
+export class AssinaturaError extends BadRequestError {
   constructor(message: string) {
     super(message);
   }

@@ -1,11 +1,11 @@
-import { DuplicatedError, HttpError, NotFoundError, ServerError, UnauthorizedError, ValidationError } from './errors';
+import { BadRequestError, DuplicatedError, HttpError, NotFoundError, ServerError, UnauthorizedError } from './errors';
 
 describe('Testa HttpError e classes filhas', () => {
   it('filhos deve extender HttpError', () => {
     expect(new NotFoundError()).toBeInstanceOf(HttpError);
     expect(new DuplicatedError()).toBeInstanceOf(HttpError);
     expect(new UnauthorizedError()).toBeInstanceOf(HttpError);
-    expect(new ValidationError()).toBeInstanceOf(HttpError);
+    expect(new BadRequestError()).toBeInstanceOf(HttpError);
     expect(new ServerError()).toBeInstanceOf(HttpError);
   });
 
@@ -24,9 +24,9 @@ describe('Testa HttpError e classes filhas', () => {
     expect(UnauthorizedError.name).toBe('UnauthorizedError');
   });
 
-  it('deve retornar 400 para ValidationError', () => {
-    expect(new ValidationError()).toHaveProperty('code', 400);
-    expect(ValidationError.name).toBe('ValidationError');
+  it('deve retornar 400 para BadRequestError', () => {
+    expect(new BadRequestError()).toHaveProperty('code', 400);
+    expect(BadRequestError.name).toBe('BadRequestError');
   });
 
   it('deve retornar 500 para ServerError', () => {

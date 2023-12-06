@@ -26,7 +26,7 @@ describe('Testa entidade Assinatura', () => {
   it('toJSON retorna objeto esperado', () => {
     expect(assinatura.toJSON()).toHaveProperty('id');
     expect(assinatura.toJSON()).toHaveProperty('usuario', amostra.usuario);
-    expect(assinatura.toJSON()).toHaveProperty('plano', amostra.plano);
+    expect(assinatura.toJSON()).toHaveProperty('plano', amostra.plano.id);
     expect(assinatura.toJSON()).toHaveProperty('fim_em', amostra.fim_em);
     expect(assinatura.toJSON()).toHaveProperty('inicio_em');
     expect(assinatura.toJSON()).toHaveProperty('status', 'ativa');
