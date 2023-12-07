@@ -1,22 +1,117 @@
 openapi: 3.0.0
 
 info:
-  title: Facoffee Financeiro API
+  title: Facoffee API
   version: 0.9.0
-  description: API para gerenciar transações financeiras da aplicação FACOFFEE
+  description: Documentação de operações disponíveis na API
+
+servers:
+  - url: /api
 
 tags:
-  - name: Transacoes
+  - name: Operações
     description: Operações de transações financeiras
+  - name: Planos
+    description: Gerenciamento de planos
+  - name: Assinaturas
+    description: Gerenciamento de assinaturas
 
 paths:
-  /transacoes/saldo:
+  /planos/:
+    get:
+      summary: Obtém a lista de planos disponíveis
+      tags:
+        - Planos
+      responses:
+        '200':
+          description: Consulta realizada com sucesso
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Plano'
+
+    post:
+      summary: Cria um plano específico
+      tags:
+        - Planos
+      requestBody:
+        $ref: '#/components/requestBodies/PlanoPost'
+      responses:
+        '201':
+          description: Plano criado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plano'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+      security:
+        - bearerAuth: [admin]
+
+  /planos/{id}:
+    get:
+      summary: Obtém dados de um plano específico
+      tags:
+        - Planos
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Identificador do plano
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Consulta realizada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plano'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    patch:
+      summary: Atualiza dados de um plano específico
+      tags:
+        - Planos
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Identificador do plano
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        $ref: '#/components/requestBodies/PlanoUpdate'
+      responses:
+        '200':
+          description: Atualização realizada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plano'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+      security:
+        - bearerAuth: [admin]
+
+  /operacoes/saldo:
     get:
       summary: Obtém o saldo das movimentações financeiras de um usuário
       tags:
-        - Transacoes
+        - Operações
       parameters:
-        - $ref: '#/components/parameters/destinatario'
+        - $ref: '#/components/parameters/usuario'
       responses:
         '200':
           description: Consulta realizada com sucesso
@@ -27,35 +122,43 @@ paths:
                 properties:
                   saldo:
                     type: integer
-                    description: Saldo consolidado do destinatario
+                    description: Saldo consolidado do usuario
                   pendente:
                     type: string
                     description: Saldo de transações pendentes de avaliação
+        '400':
+          $ref: '#/components/responses/BadRequestError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+      security:
+        - bearerAuth: []
 
-  /transacoes/extrato:
+  /operacoes/extrato:
     get:
       summary: Obtém o extrato das movimentações financeiras de um usuário
       tags:
-        - Transacoes
+        - Operações
       parameters:
-        - $ref: '#/components/parameters/destinatario'
+        - $ref: '#/components/parameters/usuario'
       responses:
         '200':
           description: Consulta realizada com sucesso
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Transacao'
+                $ref: '#/components/schemas/Operacao'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+      security:
+        - bearerAuth: []
 
-  /transacoes/credito:
+  /operacoes/credito:
     post:
       summary: Realiza uma transação de crédito
       tags:
-        - Transacoes
+        - Operações
       requestBody:
         $ref: '#/components/requestBodies/Credito'
       responses:
@@ -66,14 +169,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/Credito'
         '400':
-          description: Erro de validação
+          $ref: '#/components/responses/BadRequestError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
-  /transacoes/credito/{transacao}:
+      security:
+        - bearerAuth: []
+
+  /operacoes/credito/{transacao}:
     patch:
       summary: Revisa uma transação de crédito
       tags:
-        - Transacoes
+        - Operações
       parameters:
         - name: transacao
           in: path
@@ -104,15 +210,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/Credito'
         '400':
-          description: Erro de validação
+          $ref: '#/components/responses/BadRequestError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+      security:
+        - bearerAuth: [admin]
 
-  /transacoes/debito:
+  /operacoes/debito:
     post:
       summary: Realiza uma transação de débito
       tags:
-        - Transacoes
+        - Operações
       requestBody:
         $ref: '#/components/requestBodies/Debito'
       responses:
@@ -123,11 +231,31 @@ paths:
               schema:
                 $ref: '#/components/schemas/Debito'
         '400':
-          description: Erro de validação
+          $ref: '#/components/responses/BadRequestError'
+      security:
+        - bearerAuth: [admin]
 
 components:
   schemas:
-    TransacaoBase:
+    Plano:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nome:
+          type: string
+          example: Básico
+        descricao:
+          type: string
+          format: markdown
+          example: Oferece acesso somente ao café
+        valor:
+          type: number
+          minimum: 0
+        ativo:
+          type: boolean
+    OperacaoBase:
       type: object
       properties:
         id:
@@ -148,7 +276,7 @@ components:
           format: uuid
           description: Identificador do emissor
           nullable: false
-        destinatario:
+        usuario:
           type: string
           format: uuid
           description: Identificador do destinatário
@@ -160,7 +288,7 @@ components:
     Debito:
       type: object
       allOf:
-        - $ref: '#/components/schemas/TransacaoBase'
+        - $ref: '#/components/schemas/OperacaoBase'
         - type: object
           properties:
             tipo:
@@ -172,7 +300,7 @@ components:
     Credito:
       type: object
       allOf:
-        - $ref: '#/components/schemas/TransacaoBase'
+        - $ref: '#/components/schemas/OperacaoBase'
         - type: object
           properties:
             tipo:
@@ -203,14 +331,15 @@ components:
               format: uuid
               description: Identificador do revisor da transação
               nullable: true
-    Transacao:
+    Operacao:
       type: object
       oneOf:
         - $ref: '#/components/schemas/Debito'
         - $ref: '#/components/schemas/Credito'
+
   parameters:
-    destinatario:
-      name: destinatario
+    usuario:
+      name: usuario
       in: query
       required: false
       description: Identificador do destinatário
@@ -219,6 +348,46 @@ components:
         format: uuid
 
   requestBodies:
+    PlanoPost:
+      description: Dados do plano
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              nome:
+                type: string
+                description: Nome do plano
+                example: Básico
+              descricao:
+                type: string
+                format: markdown
+                description: Descrição do plano
+                example: Acesso somente ao café
+              valor:
+                type: number
+                description: Valor do plano
+    PlanoUpdate:
+      description: Dados do plano
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              nome:
+                type: string
+                description: Nome do plano
+                example: Básico
+              descricao:
+                type: string
+                format: markdown
+                description: Descrição do plano
+                example: Acesso somente ao café
+              valor:
+                type: number
+                description: Valor do plano
+              ativo:
+                type: boolean
     Credito:
       description: Dados da transação de crédito
       content:
@@ -230,7 +399,7 @@ components:
               - valor
               - comprovante
             properties:
-              destinatario:
+              usuario:
                 type: string
                 format: uuid
                 description: Identificador do destinatário
@@ -255,14 +424,14 @@ components:
           schema:
             type: object
             required:
-              - destinatario
+              - usuario
               - referencia
               - valor
             properties:
-              destinatario:
+              usuario:
                 type: string
                 format: uuid
-                description: Identificador do destinatario
+                description: Identificador do usuario
               referencia:
                 type: string
                 description: Referência da transação
@@ -282,6 +451,7 @@ components:
   responses:
     UnauthorizedError:
       description: Acesso não autorizado (token ausente ou inválido)
-
-security:
-  - bearerAuth: []
+    BadRequestError:
+      description: Informações necessárias não foram providas ou estão incorretas
+    NotFoundError:
+      description: Nenhuma informação encontrada para o objeto indicado

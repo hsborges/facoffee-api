@@ -3,7 +3,9 @@ import swaggerUi from 'swagger-ui-express';
 import YAML from 'yamljs';
 
 import { createApp } from './app';
-import { createRouter } from './controllers/OperacaoController';
+import { createRouter as createAssinaturaRouter } from './controllers/AssinaturaController';
+import { createRouter as createOperacoesRouter } from './controllers/OperacaoController';
+import { createRouter as createPlanosRouter } from './controllers/PlanoController';
 import { AppDataSource } from './utils/data-source';
 
 const PORT = process.env.PORT || 8080;
@@ -13,7 +15,9 @@ definition.servers = [{ url: process.env.BASE_URL || `http://localhost:${PORT}/a
 
 const app = createApp([
   { path: '/docs', router: [...swaggerUi.serve, swaggerUi.setup(definition)] },
-  { path: '/api/transacoes', router: createRouter() },
+  { path: '/api/operacoes', router: createOperacoesRouter() },
+  { path: '/api/assinaturas', router: createAssinaturaRouter() },
+  { path: '/api/planos', router: createPlanosRouter() },
 ]);
 
 AppDataSource.initialize().then(() =>
