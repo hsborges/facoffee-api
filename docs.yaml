@@ -17,6 +17,94 @@ tags:
     description: Gerenciamento de assinaturas
 
 paths:
+  /assinaturas/inscrever:
+    post:
+      summary: Inscreve usuário em um plano
+      tags:
+        - Assinaturas
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - plano
+              properties:
+                plano:
+                  type: string
+                  format: uuid
+                duracao:
+                  type: number
+                  description: tempo em meses
+      responses:
+        '201':
+          description: Assinatura criada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Assinatura'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+      security:
+        - bearerAuth: []
+
+  /assinaturas/cancelar:
+    post:
+      summary: Cancelar assinatura de um usuário
+      tags:
+        - Assinaturas
+      responses:
+        '200':
+          description: Assinatura cancelada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Assinatura'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+      security:
+        - bearerAuth: []
+
+  /assinaturas/historico:
+    get:
+      summary: Consulta histórico de assinaturas
+      tags:
+        - Assinaturas
+      responses:
+        '200':
+          description: Consulta realizada com sucesso
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Assinatura'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+      security:
+        - bearerAuth: []
+
+  /assinaturas/ultima:
+    get:
+      summary: Consulta ultima assinatura do usuario
+      tags:
+        - Assinaturas
+      responses:
+        '200':
+          description: Consulta realizada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Assinatura'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+      security:
+        - bearerAuth: []
+
   /planos/:
     get:
       summary: Obtém a lista de planos disponíveis
@@ -237,6 +325,36 @@ paths:
 
 components:
   schemas:
+    Assinatura:
+      type: object
+      required:
+        - id
+        - usuario
+        - plano
+        - inicio_em
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+        usuario:
+          type: string
+          format: uuid
+        plano:
+          type: string
+          format: uuid
+        inicio_em:
+          type: string
+          format: date-time
+        fim_em:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [ativa, cancelada, finalizada]
+        encerrada_em:
+          type: string
+          format: date-time
     Plano:
       type: object
       properties:
