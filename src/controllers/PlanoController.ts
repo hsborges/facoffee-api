@@ -11,8 +11,9 @@ export function createRouter(service: PlanoService = new PlanoService()) {
 
   router.get(
     '/',
+    validate({ todos: { isBoolean: true, optional: true, in: 'query', default: false } }),
     wraper(async (req: Request, res: Response) => {
-      return res.json(await service.listar());
+      return res.json(await service.listar(req.data.todos));
     }),
   );
 
