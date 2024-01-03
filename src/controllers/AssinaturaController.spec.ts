@@ -17,10 +17,7 @@ describe('Testa o controller de assinatura', () => {
 
   const app = createApp([{ path: '/', router: createRouter() }]);
 
-  beforeAll(async () => AppDataSource.initialize());
-  afterAll(async () => AppDataSource.destroy());
-
-  afterEach(async () => AppDataSource.dropDatabase().then(() => AppDataSource.synchronize()));
+  beforeEach(async () => AppDataSource.synchronize(true));
 
   describe('POST /inscrever', () => {
     const sendRequest = (data?: Partial<{ plano: any; duracao: any }>) =>

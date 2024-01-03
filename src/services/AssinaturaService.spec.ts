@@ -9,9 +9,6 @@ describe('Testa AssinaturaService', () => {
   const assinaturaRepo = AppDataSource.getRepository(Assinatura);
   const planoRepo = AppDataSource.getRepository(Plano);
 
-  beforeAll(() => AppDataSource.initialize());
-  afterAll(() => AppDataSource.destroy());
-
   const service = new AssinaturaService({ repositories: { assinatura: assinaturaRepo, plano: planoRepo } });
 
   it('deve inscrever, encerrar e listar assinaturas de usuários em planos', async () => {

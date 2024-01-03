@@ -30,16 +30,13 @@ function criaDadosFakeCredito(dest?: string): ConstructorParameters<typeof Credi
 }
 
 describe('Testa OperacaoService', () => {
-  const repoMock = AppDataSource.getRepository(Operacao);
+  const repository = AppDataSource.getRepository(Operacao);
 
-  beforeAll(() => AppDataSource.initialize());
-  afterAll(() => AppDataSource.destroy());
-
-  beforeEach(async () => repoMock.clear());
+  beforeEach(async () => repository.clear());
 
   {
     const service = new OperacaoService({
-      repository: repoMock,
+      repository: repository,
       fileService: { save: jest.fn().mockResolvedValue(void 0) },
     });
 
@@ -149,7 +146,7 @@ describe('Testa OperacaoService', () => {
 
   {
     const service = new OperacaoService({
-      repository: repoMock,
+      repository: repository,
       fileService: { save: jest.fn().mockRejectedValue(new Error('Unknown error')) },
     });
 
@@ -161,7 +158,7 @@ describe('Testa OperacaoService', () => {
         }),
       ).rejects.toThrow('Unknown error');
 
-      await expect(repoMock.count()).resolves.toBe(0);
+      await expect(repository.count()).resolves.toBe(0);
     });
   }
 });

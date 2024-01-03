@@ -16,18 +16,7 @@ describe('Testa PlanoController', () => {
 
   const app = createApp([{ path: '/', router: createRouter() }]);
 
-  const planoDataFormat: ReturnType<Plano['toJSON']> = {
-    id: expect.any(String),
-    nome: expect.any(String),
-    descricao: expect.any(String),
-    valor: expect.any(Number),
-    ativo: expect.any(Boolean),
-  };
-
-  beforeAll(async () => AppDataSource.initialize());
-  afterAll(async () => AppDataSource.destroy());
-
-  afterEach(async () => AppDataSource.dropDatabase().then(() => AppDataSource.synchronize()));
+  beforeEach(async () => AppDataSource.synchronize(true));
 
   describe('GET /', () => {
     it('deve retornar vazio se não houver planos', async () => {

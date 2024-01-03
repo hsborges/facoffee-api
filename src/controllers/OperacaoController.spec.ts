@@ -27,14 +27,9 @@ describe('Testa o controller de operações financeiras', () => {
     '/debito': () => supertest(app).post('/debito'),
   };
 
-  beforeAll(async () => AppDataSource.initialize());
+  afterAll(() => removeCallback());
 
-  afterAll(async () => {
-    AppDataSource.destroy();
-    removeCallback();
-  });
-
-  afterEach(async () => AppDataSource.dropDatabase().then(() => AppDataSource.synchronize()));
+  beforeEach(async () => AppDataSource.synchronize(true));
 
   describe('Verifica autenticação das rotas', () => {
     it('deve retornar 401 se nenhum token for fornecido', async () => {

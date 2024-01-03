@@ -9,9 +9,6 @@ describe('Testa PlanoService', () => {
   const repository = AppDataSource.getRepository(Plano);
   const service = new PlanoService({ repository });
 
-  beforeAll(() => AppDataSource.initialize());
-  afterAll(() => AppDataSource.destroy());
-
   beforeEach(() => repository.clear());
 
   it('deve criar um plano', async () => {
