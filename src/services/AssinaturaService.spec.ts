@@ -1,14 +1,16 @@
 import { faker } from '@faker-js/faker';
-import e from 'express';
 
 import { Assinatura } from '../entities/Assinatura';
 import { Plano } from '../entities/Plano';
+import { AppDataSource } from '../utils/data-source';
 import { AssinaturaError, AssinaturaService } from './AssinaturaService';
-import { createMockedRepository } from './__mocks__/typeorm.mock';
 
 describe('Testa AssinaturaService', () => {
-  const assinaturaRepo = createMockedRepository<Assinatura>();
-  const planoRepo = createMockedRepository<Plano>();
+  const assinaturaRepo = AppDataSource.getRepository(Assinatura);
+  const planoRepo = AppDataSource.getRepository(Plano);
+
+  beforeAll(() => AppDataSource.initialize());
+  afterAll(() => AppDataSource.destroy());
 
   const service = new AssinaturaService({ repositories: { assinatura: assinaturaRepo, plano: planoRepo } });
 
@@ -27,9 +29,9 @@ describe('Testa AssinaturaService', () => {
         usuario: usuario,
         plano: plano,
         inicio_em: expect.any(Date),
-        fim_em: undefined,
+        fim_em: null,
         status: 'ativa',
-        encerrada_em: undefined,
+        encerrada_em: null,
       }),
     );
 

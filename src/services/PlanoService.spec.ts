@@ -1,16 +1,18 @@
 import { faker } from '@faker-js/faker';
-import exp from 'constants';
 import { EntityNotFoundError } from 'typeorm';
 
 import { Plano } from '../entities/Plano';
+import { AppDataSource } from '../utils/data-source';
 import { PlanoService } from './PlanoService';
-import { createMockedRepository } from './__mocks__/typeorm.mock';
 
 describe('Testa PlanoService', () => {
-  const repository = createMockedRepository<Plano>();
+  const repository = AppDataSource.getRepository(Plano);
   const service = new PlanoService({ repository });
 
-  beforeEach(() => repository._clear());
+  beforeAll(() => AppDataSource.initialize());
+  afterAll(() => AppDataSource.destroy());
+
+  beforeEach(() => repository.clear());
 
   it('deve criar um plano', async () => {
     const data = { nome: faker.string.sample(), descricao: faker.string.sample(), valor: faker.number.float() };
@@ -22,8 +24,7 @@ describe('Testa PlanoService', () => {
     expect(instancia).toHaveProperty('valor', data.valor);
     expect(instancia).toHaveProperty('ativo', true);
 
-    expect(repository.save).toHaveBeenCalledTimes(1);
-    expect(repository._data()).toEqual([instancia]);
+    await expect(repository.find()).resolves.toEqual([instancia]);
   });
 
   it('deve buscar um plano por id', async () => {
@@ -45,11 +46,17 @@ describe('Testa PlanoService', () => {
         ),
     );
 
-    await expect(service.listar(true)).resolves.toEqual(data);
+    await service.listar(true).then((planos) => {
+      expect(planos).toHaveLength(data.length);
+      expect(planos).toEqual(expect.arrayContaining(data));
+    });
 
-    Object.assign(data.shift() as Plano, { ativo: false });
+    await repository.save(Object.assign(data.shift() as Plano, { ativo: false }));
 
-    await expect(service.listar()).resolves.toEqual(data);
+    await service.listar(false).then((planos) => {
+      expect(planos).toHaveLength(data.length);
+      expect(planos).toEqual(expect.arrayContaining(data));
+    });
   });
 
   it('deve atualizar um plano', async () => {

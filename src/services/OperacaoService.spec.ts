@@ -1,12 +1,12 @@
 import { faker } from '@faker-js/faker';
-import { Repository } from 'typeorm';
+import { after } from 'node:test';
 
 import { Credito } from '../entities/Credito';
 import { Debito } from '../entities/Debito';
 import { Operacao } from '../entities/Operacao';
+import { AppDataSource } from '../utils/data-source';
 import { NotFoundError } from '../utils/errors';
 import { OperacaoService } from './OperacaoService';
-import { createMockedRepository } from './__mocks__/typeorm.mock';
 
 function criaDadosFakeDebito(dest?: string): ConstructorParameters<typeof Debito>[0] {
   return {
@@ -30,9 +30,12 @@ function criaDadosFakeCredito(dest?: string): ConstructorParameters<typeof Credi
 }
 
 describe('Testa OperacaoService', () => {
-  const repoMock = createMockedRepository<Operacao>();
+  const repoMock = AppDataSource.getRepository(Operacao);
 
-  beforeEach(() => repoMock._clear());
+  beforeAll(() => AppDataSource.initialize());
+  afterAll(() => AppDataSource.destroy());
+
+  beforeEach(async () => repoMock.clear());
 
   {
     const service = new OperacaoService({
@@ -48,22 +51,38 @@ describe('Testa OperacaoService', () => {
       for (let i = 1; i <= 5; i++) {
         const debito = criaDadosFakeDebito(usuario);
 
-        let resumo = await service.resumoPorUsuario(usuario);
-        expect(resumo.saldo).toBe(saldo);
+        await expect(service.resumoPorUsuario(usuario)).resolves.toHaveProperty('saldo', saldo);
 
         const debitoFinal = await service.debitar(debito);
         saldo -= debito.valor;
 
         expect(debitoFinal.id).toBeDefined();
 
-        const uTrans = await service.buscarPorUsuario(usuario);
+        await service.buscarPorUsuario(usuario).then((operacoes) => {
+          expect(operacoes).toHaveLength(i);
+          expect(operacoes).toContainEqual(debitoFinal);
+        });
 
-        expect(uTrans).toHaveLength(i);
-        expect(uTrans.includes(debitoFinal)).toBeTruthy();
-
-        resumo = await service.resumoPorUsuario(debito.usuario);
-        expect(resumo.saldo).toBe(saldo);
+        await expect(service.resumoPorUsuario(usuario)).resolves.toHaveProperty('saldo', saldo);
       }
+    });
+
+    it('deve retornar historico em ordem decrescente de emissão', async () => {
+      const usuario = faker.string.uuid();
+
+      for (let i = 1; i <= 5; i++) {
+        await service.debitar(criaDadosFakeDebito(usuario));
+      }
+
+      await service.buscarPorUsuario(usuario).then((operacoes) => {
+        expect(operacoes).toHaveLength(5);
+        expect(
+          operacoes.reduce(
+            (memo, op, index) => memo && (index === 0 || operacoes[index - 1].data_emissao >= op.data_emissao),
+            true,
+          ),
+        ).toBeTruthy();
+      });
     });
 
     it('deve permitir o deposito e revisao de valores', async () => {
@@ -76,9 +95,10 @@ describe('Testa OperacaoService', () => {
       for (let i = 1; i <= 5; i++) {
         const credito = criaDadosFakeCredito(usuario);
 
-        let resumo = await service.resumoPorUsuario(usuario);
-        expect(resumo.saldo).toBe(0);
-        expect(resumo.pendente).toBe(pendente);
+        await service.resumoPorUsuario(usuario).then((resumo) => {
+          expect(resumo.saldo).toBe(0);
+          expect(resumo.pendente).toBe(pendente);
+        });
 
         const creditoFinal = await service.creditar({
           ...credito,
@@ -90,14 +110,15 @@ describe('Testa OperacaoService', () => {
 
         expect(creditoFinal.id).toBeDefined();
 
-        const uTrans = await service.buscarPorUsuario(usuario);
+        await service.buscarPorUsuario(usuario).then((uTrans) => {
+          expect(uTrans).toHaveLength(i);
+          expect(uTrans).toContainEqual(creditoFinal);
+        });
 
-        expect(uTrans).toHaveLength(i);
-        expect(uTrans.includes(creditoFinal)).toBeTruthy();
-
-        resumo = await service.resumoPorUsuario(usuario);
-        expect(resumo.saldo).toBe(0);
-        expect(resumo.pendente).toBe(pendente);
+        await service.resumoPorUsuario(usuario).then((resumo) => {
+          expect(resumo.saldo).toBe(0);
+          expect(resumo.pendente).toBe(pendente);
+        });
       }
 
       let saldo = 0;
@@ -112,9 +133,10 @@ describe('Testa OperacaoService', () => {
 
         pendente -= uTrans.valor;
 
-        const resumo = await service.resumoPorUsuario(usuario);
-        expect(resumo.saldo).toBe(saldo);
-        expect(resumo.pendente).toBe(pendente);
+        await service.resumoPorUsuario(usuario).then((resumo) => {
+          expect(resumo.saldo).toBe(saldo);
+          expect(resumo.pendente).toBe(pendente);
+        });
       }
     });
 
@@ -139,7 +161,7 @@ describe('Testa OperacaoService', () => {
         }),
       ).rejects.toThrow('Unknown error');
 
-      expect(repoMock._data()).toHaveLength(0);
+      await expect(repoMock.count()).resolves.toBe(0);
     });
   }
 });

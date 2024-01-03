@@ -43,7 +43,7 @@ export class OperacaoService {
   }
 
   async buscarPorUsuario(id: string): Promise<Operacao[]> {
-    return this.repository.findBy({ usuario: id });
+    return this.repository.find({ where: { usuario: id }, order: { data_emissao: 'DESC' } });
   }
 
   async resumoPorUsuario(id: string): Promise<{ saldo: number; pendente: 0 }> {
