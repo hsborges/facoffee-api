@@ -16,9 +16,8 @@ jest.mock('../middlewares/auth');
 describe('Testa o controller de operações financeiras', () => {
   const { name, removeCallback } = dirSync({ unsafeCleanup: true });
 
-  const app = createApp([
-    { path: '/', router: createRouter(new OperacaoService({ fileService: new LocalFileService(name) })) },
-  ]);
+  const service = new OperacaoService({ fileService: new LocalFileService(name) });
+  const app = createApp([{ path: '/', router: createRouter(service) }]);
 
   const caminhos = {
     '/saldo': () => supertest(app).get('/saldo'),
@@ -53,6 +52,57 @@ describe('Testa o controller de operações financeiras', () => {
 
   describe('Verifica a rota GET /saldo', () => {
     it('deve retornar 200 com o saldo do usuário', async () => {
+      const [c1, c2] = await Promise.all([
+        service.creditar({
+          valor: faker.number.int({ min: 0, max: 100 }),
+          referencia: faker.string.hexadecimal(),
+          usuario: tokensPayload.user.sub,
+          emissor: tokensPayload.user.sub,
+          comprovante: { name: faker.system.fileName(), data: Buffer.from('') },
+        }),
+        service.creditar({
+          valor: faker.number.float({ min: 0, max: 10 }),
+          referencia: faker.string.hexadecimal(),
+          usuario: tokensPayload.user.sub,
+          emissor: tokensPayload.user.sub,
+          comprovante: { name: faker.system.fileName(), data: Buffer.from('') },
+        }),
+      ]);
+
+      await caminhos['/saldo']()
+        .auth(tokens.user, { type: 'bearer' })
+        .expect(StatusCodes.OK)
+        .expect({ saldo: 0, pendente: c1.valor + c2.valor });
+
+      await service.revisar(c1.id, { status: 'aprovado', revisado_por: tokensPayload.admin.sub });
+
+      await caminhos['/saldo']()
+        .auth(tokens.user, { type: 'bearer' })
+        .expect(StatusCodes.OK)
+        .expect({ saldo: c1.valor, pendente: c2.valor });
+
+      await service.revisar(c2.id, { status: 'rejeitado', revisado_por: tokensPayload.admin.sub });
+
+      await caminhos['/saldo']()
+        .auth(tokens.user, { type: 'bearer' })
+        .expect(StatusCodes.OK)
+        .expect({ saldo: c1.valor, pendente: 0 });
+    });
+
+    it('deve calcular o saldo somente com base nas próprias operações', async () => {
+      const c = await service.creditar({
+        valor: faker.number.int({ min: 0, max: 100 }),
+        referencia: faker.string.hexadecimal(),
+        usuario: tokensPayload.admin.sub,
+        emissor: tokensPayload.admin.sub,
+        comprovante: { name: faker.system.fileName(), data: Buffer.from('') },
+      });
+
+      await caminhos['/saldo']()
+        .auth(tokens.admin, { type: 'bearer' })
+        .expect(StatusCodes.OK)
+        .expect({ saldo: 0, pendente: c.valor });
+
       await caminhos['/saldo']()
         .auth(tokens.user, { type: 'bearer' })
         .expect(StatusCodes.OK)
@@ -82,7 +132,20 @@ describe('Testa o controller de operações financeiras', () => {
 
   describe('Verifica a rota GET /extrato', () => {
     it('deve retornar 200 com o extrato do usuário', async () => {
+      const c = await service.creditar({
+        valor: faker.number.int({ min: 0, max: 100 }),
+        referencia: faker.string.hexadecimal(),
+        usuario: tokensPayload.admin.sub,
+        emissor: tokensPayload.admin.sub,
+        comprovante: { name: faker.system.fileName(), data: Buffer.from('') },
+      });
+
       await caminhos['/extrato']().auth(tokens.user, { type: 'bearer' }).expect(StatusCodes.OK).expect([]);
+
+      await caminhos['/extrato']()
+        .auth(tokens.admin, { type: 'bearer' })
+        .expect(StatusCodes.OK)
+        .expect(JSON.parse(JSON.stringify([c.toJSON()])));
     });
 
     it('deve permitir obter extrato de outros usuários se admin', async () => {

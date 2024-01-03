@@ -26,7 +26,8 @@ export function createRouter(service: OperacaoService = new OperacaoService()) {
     validate({ usuario: { isUUID: true, in: 'query', optional: true } }),
     async (req: Request<{ usuario: string }>, res: Response, next: NextFunction) => {
       if (req.query.usuario && !req.user?.roles.includes('admin')) return next(new UnauthorizedError());
-      return res.json(await service.buscarPorUsuario(req.params.usuario));
+      const id = (req.query.usuario ? req.query.usuario : req.user?.sub) as string;
+      return res.json(await service.buscarPorUsuario(id));
     },
   );
 
