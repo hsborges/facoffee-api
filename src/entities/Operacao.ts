@@ -1,5 +1,7 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, TableInheritance } from 'typeorm';
 
+import { ColumnNumericTransformer } from '../utils/transformer';
+
 @Entity()
 @TableInheritance({ column: { type: 'varchar', name: 'tipo' } })
 export abstract class Operacao {
@@ -9,7 +11,7 @@ export abstract class Operacao {
   @Column()
   public readonly referencia!: string;
 
-  @Column('decimal')
+  @Column('decimal', { precision: 10, scale: 2, transformer: new ColumnNumericTransformer() })
   public readonly valor!: number;
 
   @CreateDateColumn()

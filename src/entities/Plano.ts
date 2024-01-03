@@ -1,5 +1,7 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
+import { ColumnNumericTransformer } from '../utils/transformer';
+
 @Entity()
 export class Plano {
   @PrimaryGeneratedColumn('uuid')
@@ -11,7 +13,7 @@ export class Plano {
   @Column()
   public readonly descricao!: string;
 
-  @Column('decimal')
+  @Column('decimal', { precision: 10, scale: 2, transformer: new ColumnNumericTransformer() })
   public readonly valor!: number;
 
   @Column()
