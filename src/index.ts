@@ -6,6 +6,7 @@ import { createApp } from './app';
 import { createRouter as createAssinaturaRouter } from './controllers/AssinaturaController';
 import { createRouter as createOperacoesRouter } from './controllers/OperacaoController';
 import { createRouter as createPlanosRouter } from './controllers/PlanoController';
+import processar from './tasks/assinaturas';
 import { AppDataSource } from './utils/data-source';
 
 const PORT = process.env.PORT || 8080;
@@ -20,8 +21,10 @@ const app = createApp([
   { path: '/api/planos', router: createPlanosRouter() },
 ]);
 
-AppDataSource.initialize().then(() =>
+AppDataSource.initialize().then(() => {
+  const job = processar('* * * * *');
+
   app
     .listen(PORT, () => consola.success(`Server listening at http://localhost:${PORT}`))
-    .on('close', () => AppDataSource.destroy()),
-);
+    .on('close', () => [job.stop(), AppDataSource.destroy()]);
+});

@@ -4,6 +4,7 @@ import { ColumnNumericTransformer } from '../utils/transformer';
 
 @Entity()
 @TableInheritance({ column: { type: 'varchar', name: 'tipo' } })
+@Index(['usuario', 'referencia'], { unique: true })
 export abstract class Operacao {
   @PrimaryGeneratedColumn('uuid')
   public readonly id!: string;

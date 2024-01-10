@@ -147,6 +147,7 @@ describe('Testa o controller de assinatura', () => {
       );
 
       await assinaturaRepo.save(new Assinatura({ plano, usuario: tokensPayload.user.sub }).encerrar('finalizacao'));
+
       const assinatura = await assinaturaRepo.save(
         new Assinatura({ plano, usuario: tokensPayload.user.sub }).encerrar('cancelamento'),
       );

@@ -52,9 +52,7 @@ export function createRouter(service: AssinaturaService = new AssinaturaService(
   );
 
   router.get('/ultima', isAuthenticated(), async (req: Request, res: Response) => {
-    const assinatura = await service
-      .buscarPorUsuario(req.user?.sub as string)
-      .then((assinaturas) => assinaturas.sort((a, b) => b.inicio_em.getTime() - a.inicio_em.getTime()).at(0));
+    const assinatura = await service.buscarPorUsuario(req.user?.sub as string).then((assinaturas) => assinaturas.at(0));
 
     if (!assinatura) return res.status(StatusCodes.NOT_FOUND).json({ message: 'Usuário não possui assinaturas' });
     else return res.status(StatusCodes.OK).json(assinatura);
