@@ -78,7 +78,7 @@ export class AssinaturaService {
 
       for (
         let date = dayjs(assinatura.inicio_em);
-        assinatura.fim_em ? date.isBefore(assinatura.fim_em, 'day') : date.isBefore(Date.now());
+        (assinatura.fim_em ? date.isBefore(assinatura.fim_em, 'day') : true) && date.isBefore(Date.now());
         date = date.add(1, 'month')
       ) {
         await this.operacaoService

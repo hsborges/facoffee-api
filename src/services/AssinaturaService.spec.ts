@@ -131,6 +131,15 @@ describe('Testa AssinaturaService', () => {
       await expect(service.encerrar(assinatura.id, 'finalizacao')).rejects.toBeDefined();
     });
 
+    it('deve lançar debitos somente até a data atual', async () => {
+      let assinatura = await service.inscrever(usuario, plano.id, { duracaoEmMeses: 2 });
+
+      await operacaoRepo.findBy({ usuario: usuario, tipo: 'Debito' }).then((debitos) => {
+        expect(debitos).toHaveLength(1);
+        expect(debitos.at(0)).toHaveProperty('valor', plano.valor);
+      });
+    });
+
     it('deve estornar valor se for cancelamento', async () => {
       let assinatura = await service.inscrever(usuario, plano.id, { duracaoEmMeses: 2 });
 
