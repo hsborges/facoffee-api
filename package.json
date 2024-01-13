@@ -65,7 +65,6 @@
     "dev": "ts-node-dev -r dotenv/config --respawn --transpile-only src/index.ts",
     "build": "shx rm -rf dist && tsc",
     "start": "node -r dotenv/config dist/index.js",
-    "test": "jest --coverage --collectCoverageFrom='src/**/*.{js,ts}'",
     "prepare": "husky install"
   },
   "config": {
