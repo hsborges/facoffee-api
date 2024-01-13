@@ -20,6 +20,8 @@ export class Plano {
   public readonly ativo!: boolean;
 
   constructor(props: { nome: string; descricao: string; valor: number }) {
+    if (props.valor <= 0) throw new Error('Valor do plano deve ser maior que zero');
+
     this.nome = props.nome;
     this.descricao = props.descricao;
     this.valor = props.valor;
