@@ -1,7 +1,6 @@
 import { faker } from '@faker-js/faker';
 import { NextFunction, Request, Response } from 'express';
 
-import '../../global';
 import { UnauthorizedError } from '../../utils/errors';
 import { SupertokensJwtPayload } from '../auth';
 
