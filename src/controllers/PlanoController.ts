@@ -1,7 +1,7 @@
 import { Request, Response, Router } from 'express';
 import { StatusCodes } from 'http-status-codes';
 
-import { hasRole, isAuthenticated } from '../middlewares/auth';
+import { hasRole } from '../middlewares/auth';
 import { validate } from '../middlewares/validate';
 import { PlanoService } from '../services/PlanoService';
 import { wraper } from '../utils/wraper';

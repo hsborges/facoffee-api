@@ -1,4 +1,4 @@
-import { Entity, EntityNotFoundError, Repository } from 'typeorm';
+import { EntityNotFoundError, Repository } from 'typeorm';
 
 import { Plano } from '../entities/Plano';
 import { AppDataSource } from '../utils/data-source';

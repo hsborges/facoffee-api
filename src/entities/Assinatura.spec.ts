@@ -1,5 +1,4 @@
 import { faker } from '@faker-js/faker';
-import e from 'express';
 
 import { Assinatura } from './Assinatura';
 import { Plano } from './Plano';

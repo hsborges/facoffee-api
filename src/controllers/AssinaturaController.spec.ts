@@ -1,6 +1,7 @@
 import { faker } from '@faker-js/faker';
 import { StatusCodes } from 'http-status-codes';
 import supertest from 'supertest';
+import { promisify } from 'util';
 
 import { createApp } from '../app';
 import { Assinatura } from '../entities/Assinatura';
@@ -147,6 +148,8 @@ describe('Testa o controller de assinatura', () => {
       );
 
       await assinaturaRepo.save(new Assinatura({ plano, usuario: tokensPayload.user.sub }).encerrar('finalizacao'));
+
+      await promisify(setTimeout)(100);
 
       const assinatura = await assinaturaRepo.save(
         new Assinatura({ plano, usuario: tokensPayload.user.sub }).encerrar('cancelamento'),
